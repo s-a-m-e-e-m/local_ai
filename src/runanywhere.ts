@@ -99,6 +99,14 @@ const MODELS: CompactModelDef[] = [
 
 let _initPromise: Promise<void> | null = null;
 
+function resolveRuntimeAssetPath(relativePath: string): string {
+  const normalizedBase = import.meta.env.BASE_URL.endsWith('/')
+    ? import.meta.env.BASE_URL
+    : `${import.meta.env.BASE_URL}/`;
+
+  return `${normalizedBase}${relativePath}`;
+}
+
 /** Initialize the RunAnywhere SDK. Safe to call multiple times. */
 export async function initSDK(): Promise<void> {
   if (_initPromise) return _initPromise;
@@ -112,7 +120,10 @@ export async function initSDK(): Promise<void> {
 
     // Step 2: Register backends (loads WASM automatically)
     await LlamaCPP.register();
-    await ONNX.register();
+    await ONNX.register({
+      wasmUrl: resolveRuntimeAssetPath('assets/sherpa/sherpa-onnx-glue.js'),
+      helperBaseUrl: resolveRuntimeAssetPath('assets/sherpa/'),
+    });
 
     // Step 3: Register model catalog
     RunAnywhere.registerModels(MODELS);
