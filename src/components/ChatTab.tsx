@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { ModelCategory } from '@runanywhere/web';
 import { TextGeneration } from '@runanywhere/web-llamacpp';
 import { useModelLoader } from '../hooks/useModelLoader';
-import mikeImg from '../assets/image.png';
+import mikeImg from '../assets/image.jpg';
 import { ModelBanner } from './ModelBanner';
 
 //---------------------------------------------------------------------------
