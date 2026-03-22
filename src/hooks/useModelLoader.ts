@@ -10,16 +10,28 @@ interface ModelLoaderResult {
   ensure: () => Promise<boolean>;
 }
 
+interface ModelLoaderOptions {
+  preferredModelId?: string;
+}
+
 /**
  * Hook to download + load models for a given category.
  * Tracks download progress and loading state.
  *
  * @param category - Which model category to ensure is loaded.
  * @param coexist  - If true, only unload same-category models (allows STT+LLM+TTS to coexist).
+ * @param options  - Optional loader preferences such as preferred model id.
  */
-export function useModelLoader(category: ModelCategory, coexist = false): ModelLoaderResult {
+export function useModelLoader(
+  category: ModelCategory,
+  coexist = false,
+  options: ModelLoaderOptions = {},
+): ModelLoaderResult {
+  const isAcceptableLoadedModel = (modelId?: string): boolean =>
+    Boolean(modelId) && (!options.preferredModelId || modelId === options.preferredModelId);
+
   const [state, setState] = useState<LoaderState>(() =>
-    ModelManager.getLoadedModel(category) ? 'ready' : 'idle',
+    isAcceptableLoadedModel(ModelManager.getLoadedModel(category)?.id) ? 'ready' : 'idle',
   );
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +39,8 @@ export function useModelLoader(category: ModelCategory, coexist = false): ModelL
 
   const ensure = useCallback(async (): Promise<boolean> => {
     // Already loaded
-    if (ModelManager.getLoadedModel(category)) {
+    const loadedModel = ModelManager.getLoadedModel(category);
+    if (isAcceptableLoadedModel(loadedModel?.id)) {
       setState('ready');
       return true;
     }
@@ -44,7 +57,10 @@ export function useModelLoader(category: ModelCategory, coexist = false): ModelL
         return false;
       }
 
-      const model = models[0];
+      const preferred = options.preferredModelId
+        ? models.find((m) => m.id === options.preferredModelId)
+        : undefined;
+      const model = preferred ?? models[0];
 
       // Download if needed
       if (model.status !== 'downloaded' && model.status !== 'loaded') {
@@ -80,7 +96,7 @@ export function useModelLoader(category: ModelCategory, coexist = false): ModelL
     } finally {
       loadingRef.current = false;
     }
-  }, [category, coexist]);
+  }, [category, coexist, options.preferredModelId]);
 
   return { state, progress, error, ensure };
 }

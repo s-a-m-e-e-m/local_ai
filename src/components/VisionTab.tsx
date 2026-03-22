@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ModelCategory, VideoCapture } from '@runanywhere/web';
+import { AudioPlayback, ModelCategory, VideoCapture } from '@runanywhere/web';
+import { TTS } from '@runanywhere/web-onnx';
 import { VLMWorkerBridge } from '@runanywhere/web-llamacpp';
 import { useModelLoader } from '../hooks/useModelLoader';
 import { ModelBanner } from './ModelBanner';
 
 const LIVE_INTERVAL_MS = 2500;
-const LIVE_MAX_TOKENS = 30;
-const SINGLE_MAX_TOKENS = 80;
+const LIVE_MAX_TOKENS = 80;
+const SINGLE_MAX_TOKENS = 180;
 const CAPTURE_DIM = 256; // CLIP resizes internally; larger is wasted work
 
 interface VisionResult {
@@ -14,20 +15,41 @@ interface VisionResult {
   totalMs: number;
 }
 
+function normalizeForSpeech(input: string): string {
+  // Remove markdown-like symbols and collapse spacing for smoother TTS.
+  let text = input
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/[`*_#>-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // If generation hit max tokens, we may end mid-thought; close with punctuation.
+  if (text && !/[.!?]$/.test(text)) {
+    text += '.';
+  }
+
+  return text;
+}
+
 export function VisionTab() {
-  const loader = useModelLoader(ModelCategory.Multimodal);
+  const loader = useModelLoader(ModelCategory.Multimodal, true);
+  const ttsLoader = useModelLoader(ModelCategory.SpeechSynthesis, true);
   const [cameraActive, setCameraActive] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [liveMode, setLiveMode] = useState(false);
+  const [speakResults, setSpeakResults] = useState(true);
+  const [speaking, setSpeaking] = useState(false);
   const [result, setResult] = useState<VisionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [prompt, setPrompt] = useState('Describe what you see briefly.');
+  const [prompt, setPrompt] = useState('It is an emergency situation. Analyze the scene and provide what you see and provide any relevant information in the response.');
 
   const videoMountRef = useRef<HTMLDivElement>(null);
   const captureRef = useRef<VideoCapture | null>(null);
   const processingRef = useRef(false);
   const liveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const liveModeRef = useRef(false);
+  const speakingRef = useRef(false);
+  const playerRef = useRef<AudioPlayback | null>(null);
 
   // Keep refs in sync with state so interval callbacks see latest values
   processingRef.current = processing;
@@ -76,6 +98,8 @@ export function VisionTab() {
   useEffect(() => {
     return () => {
       if (liveIntervalRef.current) clearInterval(liveIntervalRef.current);
+      playerRef.current?.dispose();
+      playerRef.current = null;
       const cam = captureRef.current;
       if (cam) {
         cam.stop();
@@ -84,6 +108,37 @@ export function VisionTab() {
       }
     };
   }, []);
+
+  const speakText = useCallback(async (text: string) => {
+    const clean = text.trim();
+    if (!clean || speakingRef.current) return;
+
+    const ok = await ttsLoader.ensure();
+    if (!ok) {
+      setError('Failed to load TTS model for spoken response.');
+      return;
+    }
+
+    speakingRef.current = true;
+    setSpeaking(true);
+
+    try {
+      const synthesis = await TTS.synthesize(clean, { speed: 1.0 });
+      const player = new AudioPlayback({ sampleRate: synthesis.sampleRate });
+      playerRef.current = player;
+      await player.play(synthesis.audioData, synthesis.sampleRate);
+      player.dispose();
+      if (playerRef.current === player) {
+        playerRef.current = null;
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`TTS error: ${msg}`);
+    } finally {
+      speakingRef.current = false;
+      setSpeaking(false);
+    }
+  }, [ttsLoader]);
 
   // ------------------------------------------------------------------
   // Core: capture + infer
@@ -123,7 +178,11 @@ export function VisionTab() {
         { maxTokens, temperature: 0.6 },
       );
 
-      setResult({ text: res.text, totalMs: performance.now() - t0 });
+      const normalizedText = normalizeForSpeech(res.text);
+      setResult({ text: normalizedText, totalMs: performance.now() - t0 });
+      if (speakResults) {
+        await speakText(normalizedText);
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       const isWasmCrash = msg.includes('memory access out of bounds')
@@ -139,7 +198,7 @@ export function VisionTab() {
       setProcessing(false);
       processingRef.current = false;
     }
-  }, [loader, prompt]);
+  }, [loader, prompt, speakResults, speakText]);
 
   // ------------------------------------------------------------------
   // Single-shot
@@ -203,6 +262,13 @@ export function VisionTab() {
         onLoad={loader.ensure}
         label="VLM"
       />
+      <ModelBanner
+        state={ttsLoader.state}
+        progress={ttsLoader.progress}
+        error={ttsLoader.error}
+        onLoad={ttsLoader.ensure}
+        label="TTS"
+      />
 
       <div className="vision-camera">
         {!cameraActive && (
@@ -245,6 +311,21 @@ export function VisionTab() {
           </>
         )}
       </div>
+
+      <label className="tools-toggle">
+        <input
+          type="checkbox"
+          checked={speakResults}
+          onChange={(e) => setSpeakResults(e.target.checked)}
+        />
+        Speak results
+      </label>
+
+      {speaking && (
+        <div className="vision-result">
+          <span className="text-muted">Speaking vision result...</span>
+        </div>
+      )}
 
       {error && (
         <div className="vision-result">

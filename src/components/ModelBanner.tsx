@@ -15,8 +15,8 @@ export function ModelBanner({ state, progress, error, onLoad, label }: Props) {
     <div className="model-banner">
       {state === 'idle' && (
         <>
-          <span>No {label} model loaded.</span>
-          <button className="btn btn-sm" onClick={onLoad}>Download &amp; Load</button>
+          <span>No {label} model loaded, please invoke the model to get started.</span>
+          <button className="btn btn-sm" onClick={onLoad}>Load the {label} Model</button>
         </>
       )}
       {state === 'downloading' && (

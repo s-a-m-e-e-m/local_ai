@@ -5,8 +5,10 @@ import { useModelLoader } from '../hooks/useModelLoader';
 import { ModelBanner } from './ModelBanner';
 
 type VoiceState = 'idle' | 'loading-models' | 'listening' | 'processing' | 'speaking';
+const VOICE_MAX_TOKENS = 640;
 
-export function VoiceTab() {
+export function VoiceTab({ severity = 'medium' }: { severity?: string }) {
+  // const severity = useParams() || 'medium';
   const llmLoader = useModelLoader(ModelCategory.Language, true);
   const sttLoader = useModelLoader(ModelCategory.SpeechRecognition, true);
   const ttsLoader = useModelLoader(ModelCategory.SpeechSynthesis, true);
@@ -108,9 +110,9 @@ export function VoiceTab() {
 
     try {
       const result = await pipeline.processTurn(audioData, {
-        maxTokens: 60,
+        maxTokens: VOICE_MAX_TOKENS,
         temperature: 0.7,
-        systemPrompt: 'You are a helpful voice assistant. Keep responses concise — 1-2 sentences max.',
+        systemPrompt: `You are a helpful voice assistant. The user is speaking with ${severity} severity urgency. Respond accordingly. If the user seems to be in an severe emergency situation, advise them to call emergency services immediately, if severity is medium then provide additional guidance and if severity is low then provide basic assistance. Keep responses concise and actionable.`,
       }, {
         onTranscription: (text) => {
           setTranscript(text);
@@ -161,8 +163,14 @@ export function VoiceTab() {
     { label: 'TTS', loader: ttsLoader },
   ].filter((l) => l.loader.state !== 'ready');
 
+  const orbGlow = voiceState === 'listening'
+    ? 'shadow-[0_0_40px_rgba(255,85,0,0.3)]'
+    : voiceState === 'processing' || voiceState === 'speaking'
+      ? 'shadow-[0_0_40px_rgba(34,197,94,0.3)]'
+      : '';
+
   return (
-    <div className="tab-panel voice-panel">
+    <div className="tab-panel voice-tab-panel flex flex-col gap-4 rounded-2xl border border-slate-700/70 bg-slate-900/80 p-4 shadow-lg backdrop-blur-sm">
       {pendingLoaders.length > 0 && voiceState === 'idle' && (
         <ModelBanner
           state={pendingLoaders[0].loader.state}
@@ -173,14 +181,25 @@ export function VoiceTab() {
         />
       )}
 
-      {error && <div className="model-banner"><span className="error-text">{error}</span></div>}
+      {error && (
+        <div className="model-banner rounded-xl border border-red-500/30 bg-red-500/10">
+          <span className="error-text">{error}</span>
+        </div>
+      )}
 
-      <div className="voice-center">
-        <div className="voice-orb" data-state={voiceState} style={{ '--level': audioLevel } as React.CSSProperties}>
-          <div className="voice-orb-inner" />
+      <div className="flex flex-col items-center gap-4 py-6 sm:py-8">
+        <div
+          className={`h-32 w-32 scale-[calc(1+var(--level,0)*0.3)] rounded-full bg-slate-800 transition-all duration-200 ${orbGlow}`}
+          data-state={voiceState}
+          style={{ '--level': audioLevel } as React.CSSProperties}
+          role="status"
+          aria-live="polite"
+          aria-label={`Voice state ${voiceState}`}
+        >
+          <div className={`m-auto h-20 w-20 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 opacity-90 ${voiceState === 'listening' ? 'animate-pulse' : ''}`} />
         </div>
 
-        <p className="voice-status">
+        <p className="text-sm font-medium text-slate-400" aria-live="polite" aria-atomic="true">
           {voiceState === 'idle' && 'Tap to start listening'}
           {voiceState === 'loading-models' && 'Loading models...'}
           {voiceState === 'listening' && 'Listening... speak now'}
@@ -190,30 +209,36 @@ export function VoiceTab() {
 
         {voiceState === 'idle' || voiceState === 'loading-models' ? (
           <button
-            className="btn btn-primary btn-lg"
+            className="inline-flex min-w-44 items-center justify-center rounded-xl bg-orange-500 px-8 py-3 text-base font-semibold text-white transition-all duration-200 hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/80 disabled:cursor-not-allowed disabled:opacity-50"
             onClick={startListening}
             disabled={voiceState === 'loading-models'}
+            aria-busy={voiceState === 'loading-models'}
+            aria-label="Start listening for voice input"
           >
             Start Listening
           </button>
         ) : voiceState === 'listening' ? (
-          <button className="btn btn-lg" onClick={stopListening}>
+          <button
+            className="inline-flex min-w-44 items-center justify-center rounded-xl border border-slate-600 bg-slate-800 px-8 py-3 text-base font-semibold text-slate-100 transition-all duration-200 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/80"
+            onClick={stopListening}
+            aria-label="Stop listening"
+          >
             Stop
           </button>
         ) : null}
       </div>
 
       {transcript && (
-        <div className="voice-transcript">
-          <h4>You said:</h4>
-          <p>{transcript}</p>
+        <div className="voice-card rounded-xl border border-slate-700/70 bg-slate-800/60 p-4">
+          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">You said:</h4>
+          <p className="text-sm leading-relaxed text-slate-100">{transcript}</p>
         </div>
       )}
 
       {response && (
-        <div className="voice-response">
-          <h4>AI response:</h4>
-          <p>{response}</p>
+        <div className="voice-card rounded-xl border border-slate-700/70 bg-slate-800/60 p-4">
+          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">AI response:</h4>
+          <p className="text-sm leading-relaxed text-slate-100">{response}</p>
         </div>
       )}
     </div>
