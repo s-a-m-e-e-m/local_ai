@@ -2,6 +2,14 @@
 
 Emergency Assistant AI is a fully offline, browser-based assistant for everyday support and high-pressure emergency contexts. It combines local language, vision, speech recognition, and speech synthesis models into one interface without requiring cloud inference.
 
+# Live demo
+
+Live page: https://emergencyassistantai.vercel.app/
+
+![alt text](image.png)
+![alt text](image-1.png)
+![alt text](image-2.png)
+
 ## Why this app
 
 - Works offline after initial model download
