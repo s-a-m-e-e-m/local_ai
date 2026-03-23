@@ -12,12 +12,10 @@ const Footer = () => {
                 </div>
                 <div className="container ">
                     <a href="#about" className="text-gray-400 text-white hover:cursor-pointer">About</a>
-                    <div className="grid gap-2">
+                    <div className="flex flex-col gap-2">
                         <span>Contact us</span>
-                        <ul className='flex flex-col sm:flex-row gap-6'>
-                            <li><a href="mailto:codeverse@gmail.com" className="text-gray-400 hover:text-white flex items-center"><SiGmail className="mr-2" />&nbsp; Gmail</a></li>
-                            <li><a href="tel:+910000000000" className="text-gray-400 hover:text-white flex items-center"><BsFillTelephoneFill className="mr-2" />&nbsp;  Mobile</a></li>
-                        </ul>
+                        <a href="mailto:techverse26@gmail.com" className="text-gray-400 hover:text-white flex items-center"><SiGmail className="mr-2" />&nbsp; Gmail</a>
+                        <a href="mailto:techverse26@gmail.com" className="text-gray-400 hover:text-white flex items-center">techverse26@gmail.com</a>
                     </div>
                 </div>
             </div>

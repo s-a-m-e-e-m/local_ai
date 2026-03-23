@@ -28,7 +28,7 @@ const capabilities = [
   },
 ];
 
-const Assistance = () => {
+const Assistant = () => {
   return (
     <section className=" p-6 min-h-full w-full bg-[#030d24] pb-10 text-slate-100" style={{ paddingBottom: "4rem" }}>
       {/* Background gradient */}
@@ -118,18 +118,14 @@ const Assistance = () => {
           <p className="text-lg leading-relaxed text-slate-300">
             Want to collaborate, report issues, or request new features? Reach out and our team will get back to you.
           </p>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <a href="mailto:support@runanywhere.ai" className="rounded-xl border border-cyan-500/25 bg-slate-900/65 p-6 transition hover:border-cyan-300/60 hover:bg-slate-900/80 space-y-2">
+          <div className="grid gap-6 sm:grid-cols-2" style={{ "marginTop": "0.5rem" }}>
+            <a href="mailto:techverse26@gmail.com" className="rounded-xl border border-cyan-500/25 bg-slate-900/65 p-6 transition hover:border-cyan-300/60 hover:bg-slate-900/80 space-y-2">
               <p className="text-xs uppercase tracking-wide text-cyan-300/75">Email</p>
-              <p className="text-base font-semibold">codeverse@gmail.com</p>
-            </a>
-            <a href="tel:+910000000000" className="rounded-xl border border-cyan-500/25 bg-slate-900/65 p-6 transition hover:border-cyan-300/60 hover:bg-slate-900/80 space-y-2">
-              <p className="text-xs uppercase tracking-wide text-cyan-300/75">Phone</p>
-              <p className="text-base font-semibold">+91 00000 00000</p>
+              <p className="text-base font-semibold">techverse26@gmail.com</p>
             </a>
             <div className="rounded-xl border border-cyan-500/25 bg-slate-900/65 hover:border-cyan-300/60 hover:bg-slate-900/80 p-6 space-y-2">
               <p className="text-xs uppercase tracking-wide text-cyan-300/75">Office</p>
-              <p className="text-base font-semibold">Codeverse</p>
+              <p className="text-base font-semibold">Techverse</p>
               <p className="text-sm text-slate-400">Remote-first operations</p>
             </div>
           </div>
@@ -140,4 +136,4 @@ const Assistance = () => {
   )
 }
 
-export default Assistance
+export default Assistant;

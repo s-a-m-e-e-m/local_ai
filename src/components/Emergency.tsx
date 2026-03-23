@@ -5,7 +5,7 @@ export default function Emergency() {
   return (
     <div className="flex flex-col gap-8 p-6 bg-gray-900 min-h-screen text-white" style={{ "margin": "0.3rem", padding: "0.5rem" }}>
       {/* Tabs Section */}
-      <h3 className='mt-6' >In an Emergency! Don't Panic Just Ask the Assistant and get instant help.</h3>
+      <h3 className='mt-6 text-center text-xl font-semibold' >In an Emergency! Don't Panic Just Ask the Assistant and get instant help.</h3>
       <div className="flex gap-6 justify-center flex-col md:flex-row">
         <div style={{ margin: "0.5rem" }}>
           <h2>Start the Voice Assistant for audio guidance</h2>
@@ -36,10 +36,10 @@ export default function Emergency() {
            bg-red-600 hover:bg-red-700 active:bg-red-800 
            text-center shadow-lg transform hover:scale-105 
            transition duration-200 ease-in-out"><span className='block'>Child Helpline</span><span>Number: 1098</span></a>
-        <a href="tel:100" className="block w-[320px] max-w-[90vw] rounded-lg py-4 px-6 text-lg font-semibold 
+        <a href="tel:112" className="block w-[320px] max-w-[90vw] rounded-lg py-4 px-6 text-lg font-semibold 
            bg-red-600 hover:bg-red-700 active:bg-red-800 
            text-center shadow-lg transform hover:scale-105 
-           transition duration-200 ease-in-out"><span className='block'>Police</span><span>Number: 100</span></a>
+           transition duration-200 ease-in-out"><span className='block'>Police</span><span>Number: 112</span></a>
         <a href="tel:101" className="block w-[320px] max-w-[90vw] rounded-lg py-4 px-6 text-lg font-semibold 
            bg-red-600 hover:bg-red-700 active:bg-red-800 
            text-center shadow-lg transform hover:scale-105 
