@@ -52,7 +52,6 @@ export function App() {
           <nav className="flex flex-wrap items-center gap-2">
             <Link to="/emergency" className="rounded-lg border bg-red-500 text-white p-1  transition ">Emergency Mode</Link>
             <Link to="/general-support" className="hidden sm:block rounded-lg border bg-green-500 text-white p-1  transition ">Assistant Mode</Link>
-            <a href="/contact" className=" hidden sm:block rounded-lg border bg-blue-500 text-white p-1  transition ">Contact</a>
           </nav>
         </header>
 
