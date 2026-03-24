@@ -10,6 +10,11 @@ const LIVE_MAX_TOKENS = 80;
 const SINGLE_MAX_TOKENS = 180;
 const CAPTURE_DIM = 256; // CLIP resizes internally; larger is wasted work
 
+interface CameraErrorInfo {
+  name: string;
+  message: string;
+}
+
 interface VisionResult {
   text: string;
   totalMs: number;
@@ -29,6 +34,53 @@ function normalizeForSpeech(input: string): string {
   }
 
   return text;
+}
+
+function getCameraErrorInfo(err: unknown): CameraErrorInfo {
+  if (err instanceof DOMException) {
+    return { name: err.name, message: err.message || '' };
+  }
+
+  if (err instanceof Error) {
+    const maybeName = (err as Error & { name?: string }).name ?? 'Error';
+    return { name: maybeName, message: err.message || '' };
+  }
+
+  return { name: 'UnknownError', message: String(err) };
+}
+
+function mapCameraError(err: unknown): string {
+  const { name, message } = getCameraErrorInfo(err);
+  const lowerName = name.toLowerCase();
+  const lowerMsg = message.toLowerCase();
+
+  const isPermissionDenied =
+    lowerName.includes('notallowed')
+    || lowerName.includes('security')
+    || lowerMsg.includes('permission denied')
+    || lowerMsg.includes('notallowederror');
+
+  if (isPermissionDenied) {
+    return 'Camera access was blocked by the browser or OS. Ensure camera is allowed for this site and no privacy tool is blocking it.';
+  }
+
+  if (lowerName.includes('notfound') || lowerMsg.includes('devicesnotfound')) {
+    return 'No camera was found on this device.';
+  }
+
+  if (lowerName.includes('notreadable') || lowerMsg.includes('trackstarterror')) {
+    return 'Camera is currently busy (used by another app/tab). Close other camera apps and try again.';
+  }
+
+  if (lowerName.includes('overconstrained') || lowerName.includes('constraint')) {
+    return 'Requested camera mode is not available on this device. Try again and the app will use another camera mode.';
+  }
+
+  if (lowerMsg.includes('secure context') || lowerMsg.includes('only secure origins are allowed')) {
+    return 'Camera requires HTTPS or localhost. Open the site over a secure connection.';
+  }
+
+  return `Camera error (${name}): ${message || 'Unknown camera failure.'}`;
 }
 
 export function VisionTab() {
@@ -64,13 +116,40 @@ export function VisionTab() {
     setError(null);
 
     try {
-      const cam = new VideoCapture({ facingMode: 'environment' });
-      await cam.start();
-      captureRef.current = cam;
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setError('This browser does not support camera access (getUserMedia).');
+        return;
+      }
+
+      const candidates: Array<{ facingMode?: 'environment' | 'user' }> = [
+        { facingMode: 'environment' },
+        { facingMode: 'user' },
+        {},
+      ];
+
+      let startedCam: VideoCapture | null = null;
+      let lastError: unknown;
+
+      for (const opts of candidates) {
+        try {
+          const cam = new VideoCapture(opts);
+          await cam.start();
+          startedCam = cam;
+          break;
+        } catch (err) {
+          lastError = err;
+        }
+      }
+
+      if (!startedCam) {
+        throw lastError ?? new Error('Unable to start camera.');
+      }
+
+      captureRef.current = startedCam;
 
       const mount = videoMountRef.current;
       if (mount) {
-        const el = cam.videoElement;
+        const el = startedCam.videoElement;
         el.style.width = '100%';
         el.style.borderRadius = '12px';
         mount.appendChild(el);
@@ -78,19 +157,7 @@ export function VisionTab() {
 
       setCameraActive(true);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-
-      if (msg.includes('NotAllowed') || msg.includes('Permission')) {
-        setError(
-          'Camera permission denied. On macOS, check System Settings → Privacy & Security → Camera and ensure your browser is allowed.',
-        );
-      } else if (msg.includes('NotFound') || msg.includes('DevicesNotFound')) {
-        setError('No camera found on this device.');
-      } else if (msg.includes('NotReadable') || msg.includes('TrackStartError')) {
-        setError('Camera is in use by another application.');
-      } else {
-        setError(`Camera error: ${msg}`);
-      }
+      setError(mapCameraError(err));
     }
   }, []);
 
