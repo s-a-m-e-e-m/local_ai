@@ -49,7 +49,7 @@ export function App() {
     return (
       <div className="app-loading">
         <div className="spinner" />
-        <h2>Loading RunAnywhere SDK...</h2>
+        <h2>Loading Emergency Assistant AI...</h2>
         <p>Initializing on-device AI engine</p>
       </div>
     );
