@@ -3,11 +3,28 @@ import { initSDK, getAccelerationMode } from './runanywhere';
 import { ChatTab } from './components/ChatTab';
 import { VisionTab } from './components/VisionTab';
 import { VoiceTab } from './components/VoiceTab';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import Emergency from './components/Emergency';
 import GeneralSupport from './components/GeneralSupport';
 import Assistant from './components/Assistant';
 import Footer from './components/Footer';
+
+function RedirectToHomeOnReload() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const navigationEntry = performance.getEntriesByType('navigation')[0] as
+      | PerformanceNavigationTiming
+      | undefined;
+    const isReload = navigationEntry?.type === 'reload';
+
+    if (isReload && window.location.pathname !== '/') {
+      navigate('/', { replace: true });
+    }
+  }, [navigate]);
+
+  return null;
+}
 
 export function App() {
   const [sdkReady, setSdkReady] = useState(false);
@@ -43,6 +60,7 @@ export function App() {
   return (
     <div className="app">
       <Router>
+        <RedirectToHomeOnReload />
         <header className="app-header sticky top-0 z-20 rounded-2xl border border-cyan-500/15 bg-[#031027]/80 px-4 py-3 backdrop-blur-md md:px-6 flex justify-between">
           <Link to="/" className="flex flex-col items-center justify-between gap-2">
             <p className="text-[11px] font-semibold tracking-[0.2em] text-cyan-300/80">FULLY OFFLINE</p>
