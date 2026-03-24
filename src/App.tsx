@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { initSDK, getAccelerationMode } from './runanywhere';
 import { ChatTab } from './components/ChatTab';
 import { VisionTab } from './components/VisionTab';
@@ -11,8 +11,15 @@ import Footer from './components/Footer';
 
 function RedirectToHomeOnReload() {
   const navigate = useNavigate();
+  const hasCheckedReload = useRef(false);
 
   useEffect(() => {
+    if (hasCheckedReload.current) {
+      return;
+    }
+
+    hasCheckedReload.current = true;
+
     const navigationEntry = performance.getEntriesByType('navigation')[0] as
       | PerformanceNavigationTiming
       | undefined;
@@ -49,7 +56,7 @@ export function App() {
     return (
       <div className="app-loading">
         <div className="spinner" />
-        <h2>Loading Emergency Assistant AI...</h2>
+        <h2>Emergency Assistant AI...</h2>
         <p>Initializing on-device AI engine</p>
       </div>
     );
