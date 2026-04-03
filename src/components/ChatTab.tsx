@@ -126,6 +126,7 @@ export function ChatTab() {
   const [extractError, setExtractError] = useState<string | null>(null);
   const [fileName, setFileName] = useState('');
   const [extractedText, setExtractedText] = useState('');
+  const[voiceOn,setVoiceOn] = useState(true);
   const cancelRef = useRef<(() => void) | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -186,12 +187,12 @@ export function ChatTab() {
 
     // Add empty assistant message for streaming
     const assistantIdx = messages.length + 1;
-    setMessages((prev) => [...prev, { role: 'assistant', text: '' }]);
+    setMessages((prev) => [...prev, { role: 'assistant', text: '"⚡ Analyzing situation..."' }]);
 
     try {
       const { stream, result: resultPromise, cancel } = await TextGeneration.generateStream(prompt, {
-        maxTokens: selectedContext ? 720 : 1012,
-        temperature: 0.7,
+        maxTokens: 80,
+        temperature: 0.3
       });
       cancelRef.current = cancel;
 
@@ -203,14 +204,36 @@ export function ChatTab() {
           updated[assistantIdx] = { role: 'assistant', text: accumulated };
           return updated;
         });
+      } 
+      const addEmergencyHelp = (text:string): string =>{
+        const t =text.toLowerCase();
+
+        if(t.includes("fire") || t.includes("bleeding") ||t.includes("unconscious")){
+          return `🚨 HIGH PRIORITY EMERGENCY!
+
+📞 Call immediately:
+Police: 112
+Ambulance: 102
+Fire: 101
+
+⚠️ Stay calm. Help is on the way.
+`;
+        }
+        return '';
+      }
+
+      const emergency =addEmergencyHelp(text);
+      if(emergency){
+        setMessages(prev =>[...prev, {role:'assistant',text:emergency}])
       }
 
       const result = await resultPromise;
+      const finalText = result.text || accumulated;
       setMessages((prev) => {
         const updated = [...prev];
         updated[assistantIdx] = {
           role: 'assistant',
-          text: result.text || accumulated,
+          text: finalText,
           stats: {
             tokens: result.tokensUsed,
             tokPerSec: result.tokensPerSecond,
@@ -218,8 +241,31 @@ export function ChatTab() {
           },
         };
         return updated;
-      });
-    } catch (err) {
+      }); 
+      if(voiceOn){
+      speechSynthesis.cancel();
+      const cleanTextForSpeech = (text: string) => {
+  return text
+    .replace(/[#*_`>-]/g, '')   // remove markdown symbols
+    .replace(/\n/g, ' ')        // remove line breaks
+    .replace(/\s+/g, ' ')       // remove extra spaces
+    .trim();
+};
+      const speech = new SpeechSynthesisUtterance(finalText);
+      speech.rate=1;
+      speech.pitch=1;
+      speech.lang="en-IN"; 
+      speechSynthesis.speak(speech);
+    }
+    const toggleVoice =() =>{
+      setVoiceOn(prev =>{
+        if(prev) 
+          speechSynthesis.cancel();
+        return !prev;
+      })
+    }
+   } 
+   catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setMessages((prev) => {
         const updated = [...prev];
@@ -293,7 +339,14 @@ export function ChatTab() {
           </button>
         )}
       </div>
-
+      
+<button
+  onClick={() => setVoiceOn(prev => !prev)}
+  className="btn"
+  style={{ marginLeft: "10px" }}
+>
+  {voiceOn ? "🔊 Voice ON" : "🔇 Voice OFF"}
+</button>
       <form
         className="chat-input"
         onSubmit={(e) => { e.preventDefault(); send(); }}
